@@ -1,0 +1,56 @@
+name: Continuous integration
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # SETUP
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: fake build
+        run: cp README.md test.txt
+
+      - name: Set the version
+        id: version_number
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+          echo ${GITHUB_REF#refs/tags/v}
+
+      - name: Set the git source location
+        id: source_loc
+        run: |
+          env > test.txt
+
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: 'last-build'
+          path: ./test.txt
+      - name: Upload Assets To Release
+        if: "!github.event.release.prerelease"
+        uses: xresloader/upload-to-github-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: test.txt
+          draft: false
+          update_latest_release: true
+          tags: true
+
+      - name: Upload Assets To Pre-Release
+        if: "github.event.release.prerelease"
+        uses: xresloader/upload-to-github-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: test.txt
+          draft: false
+          update_latest_release: false
+          prerelease: true
+          tags: true
